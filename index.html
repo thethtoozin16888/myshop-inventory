@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ငါ့ဆိုင် - My Shop Inventory</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f0f1a;--surface:#1a1a2e;--surface2:#25253d;--surface3:#2d2d4a;
+  --accent:#a855f7;--accent2:#ec4899;--accent-glow:rgba(168,85,247,.15);
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --green:#22c55e;--yellow:#eab308;--red:#ef4444;--blue:#3b82f6;
+  --radius:12px;--shadow:0 4px 24px rgba(0,0,0,.3);
+}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+a{color:var(--accent);text-decoration:none}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+
+/* Header */
+.header{background:linear-gradient(135deg,#1a1a2e 0%,#2d1b4e 50%,#1a1a2e 100%);border-bottom:1px solid var(--surface3);padding:16px 24px;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+.header-inner{max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:42px;height:42px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.logo h1{font-size:1.4rem;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700}
+.logo small{display:block;font-size:.75rem;color:var(--text3);-webkit-text-fill-color:var(--text3)}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Buttons */
+.btn{padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:500;transition:all .2s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px);box-shadow:0 4px 16px rgba(168,85,247,.3)}
+.btn-secondary{background:var(--surface3);color:var(--text)}
+.btn-secondary:hover{background:#3a3a5c}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{background:#dc2626}
+.btn-success{background:var(--green);color:#fff}
+.btn-success:hover{background:#16a34a}
+.btn-sm{padding:6px 12px;font-size:.8rem}
+.btn-icon{width:36px;height:36px;padding:0;justify-content:center;border-radius:8px}
+
+/* Main Layout */
+.main{max-width:1400px;margin:0 auto;padding:20px}
+
+/* Dashboard */
+.dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--surface3);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat-card.purple::before{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.stat-card.green::before{background:var(--green)}
+.stat-card.blue::before{background:var(--blue)}
+.stat-card.yellow::before{background:var(--yellow)}
+.stat-card.red::before{background:var(--red)}
+.stat-label{font-size:.8rem;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.stat-value{font-size:1.6rem;font-weight:700;background:linear-gradient(135deg,var(--text),var(--text2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-sub{font-size:.75rem;color:var(--text3);margin-top:4px}
+
+/* Toolbar */
+.toolbar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+.search-box{flex:1;min-width:200px;position:relative}
+.search-box input{width:100%;padding:10px 16px 10px 40px;background:var(--surface);border:1px solid var(--surface3);border-radius:var(--radius);color:var(--text);font-size:.9rem;outline:none;transition:border-color .2s}
+.search-box input:focus{border-color:var(--accent)}
+.search-box svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);width:18px;height:18px}
+.filter-group{display:flex;gap:8px;flex-wrap:wrap}
+select{padding:10px 14px;background:var(--surface);border:1px solid var(--surface3);border-radius:var(--radius);color:var(--text);font-size:.85rem;outline:none;cursor:pointer}
+select:focus{border-color:var(--accent)}
+
+/* Table */
+.table-wrap{background:var(--surface);border:1px solid var(--surface3);border-radius:var(--radius);overflow:hidden}
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:800px}
+thead{background:var(--surface2)}
+th{padding:14px 16px;text-align:left;font-size:.8rem;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:600;white-space:nowrap}
+td{padding:12px 16px;border-top:1px solid var(--surface3);font-size:.9rem;vertical-align:middle}
+tr:hover td{background:var(--accent-glow)}
+.item-name{font-weight:600;color:var(--text);max-width:260px}
+.item-cat{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:500;background:rgba(168,85,247,.15);color:var(--accent)}
+.item-color{color:var(--text2);font-size:.85rem}
+.item-price{font-weight:600;color:var(--green);white-space:nowrap}
+
+/* Type badges */
+.badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.badge-instock{background:rgba(34,197,94,.15);color:var(--green)}
+.badge-preorder{background:rgba(59,130,246,.15);color:var(--blue)}
+.badge-soldout{background:rgba(239,68,68,.15);color:var(--red)}
+
+.actions-cell{display:flex;gap:6px}
+.no-data{text-align:center;padding:60px 20px;color:var(--text3)}
+.no-data svg{width:48px;height:48px;margin-bottom:12px;opacity:.3}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal-overlay.active{display:flex}
+.modal{background:var(--surface);border:1px solid var(--surface3);border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow)}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--surface3);display:flex;justify-content:space-between;align-items:center}
+.modal-header h2{font-size:1.1rem;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--surface3);display:flex;justify-content:flex-end;gap:8px}
+
+/* Form */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group.full{grid-column:1/-1}
+.form-group label{font-size:.8rem;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.3px}
+.form-group input,.form-group textarea,.form-group select{padding:10px 14px;background:var(--surface2);border:1px solid var(--surface3);border-radius:8px;color:var(--text);font-size:.9rem;outline:none;transition:border-color .2s}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--accent)}
+.form-group textarea{resize:vertical;min-height:60px;font-family:inherit}
+
+/* Image preview */
+.img-preview{width:48px;height:48px;border-radius:8px;object-fit:cover;background:var(--surface2);border:1px solid var(--surface3)}
+.img-placeholder{width:48px;height:48px;border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:.7rem}
+
+/* Toast */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 20px;border-radius:10px;color:#fff;font-size:.85rem;font-weight:500;animation:slideIn .3s ease;box-shadow:var(--shadow);display:flex;align-items:center;gap:8px}
+.toast-success{background:var(--green)}
+.toast-error{background:var(--red)}
+.toast-info{background:var(--blue)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* Import modal */
+.import-area{border:2px dashed var(--surface3);border-radius:var(--radius);padding:40px;text-align:center;cursor:pointer;transition:border-color .2s}
+.import-area:hover{border-color:var(--accent)}
+.import-area input[type=file]{display:none}
+
+/* Pagination / count */
+.table-footer{padding:12px 16px;border-top:1px solid var(--surface3);display:flex;justify-content:space-between;align-items:center;font-size:.85rem;color:var(--text3)}
+
+/* Responsive */
+@media(max-width:768px){
+  .header-inner{flex-direction:column;align-items:stretch}
+  .header-actions{justify-content:center}
+  .dashboard{grid-template-columns:repeat(2,1fr)}
+  .toolbar{flex-direction:column}
+  .search-box{min-width:100%}
+  .filter-group{width:100%;justify-content:stretch}
+  .filter-group select{flex:1}
+  .form-grid{grid-template-columns:1fr}
+  .main{padding:12px}
+  .stat-value{font-size:1.3rem}
+}
+@media(max-width:480px){
+  .dashboard{grid-template-columns:1fr 1fr}
+  .stat-card{padding:14px}
+  .header-actions .btn span.btn-text{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+<div class="header-inner">
+  <div class="logo">
+    <div class="logo-icon">🛍️</div>
+    <div>
+      <h1>ငါ့ဆိုင်</h1>
+      <small>My Shop — Inventory Manager</small>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-primary" onclick="openAddModal()">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      <span class="btn-text">ပစ္စည်းထည့်ရန်</span>
+    </button>
+    <button class="btn btn-secondary" onclick="exportData()">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      <span class="btn-text">Export</span>
+    </button>
+    <button class="btn btn-secondary" onclick="openImportModal()">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      <span class="btn-text">Import</span>
+    </button>
+  </div>
+</div>
+</header>
+
+<div class="main">
+
+<!-- Dashboard -->
+<div class="dashboard" id="dashboard"></div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="search-box">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <input type="text" id="searchInput" placeholder="ရှာရန် / Search products..." oninput="renderTable()">
+  </div>
+  <div class="filter-group">
+    <select id="filterCategory" onchange="renderTable()">
+      <option value="">All Categories</option>
+    </select>
+    <select id="filterType" onchange="renderTable()">
+      <option value="">All Types</option>
+      <option value="Instock">✅ Instock</option>
+      <option value="Preorder">📦 Preorder</option>
+      <option value="Sold Out">🚫 Sold Out</option>
+    </select>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="table-wrap">
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>ပစ္စည်းအမည် / Item</th>
+          <th>အမျိုးအစား</th>
+          <th>အရောင်/ဆိုက်</th>
+          <th>ဈေးနှုန်း (MMK)</th>
+          <th>အခြေအနေ</th>
+          <th>အရေအတွက်</th>
+          <th>မှတ်ချက်</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div class="table-footer">
+    <span id="tableCount"></span>
+    <span id="tableValue"></span>
+  </div>
+</div>
+
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="productModal">
+<div class="modal">
+  <div class="modal-header">
+    <h2 id="modalTitle">ပစ္စည်းအသစ်ထည့်ရန်</h2>
+    <button class="btn btn-icon btn-secondary" onclick="closeModal('productModal')">&times;</button>
+  </div>
+  <div class="modal-body">
+    <input type="hidden" id="editId">
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>ပစ္စည်းအမည် / Item Name *</label>
+        <input type="text" id="fName" placeholder="e.g. Revlon Lipstick - Nude Velvet" required>
+      </div>
+      <div class="form-group">
+        <label>အမျိုးအစား / Category *</label>
+        <input type="text" id="fCategory" placeholder="e.g. Beauty, Tech" list="catList">
+        <datalist id="catList"></datalist>
+      </div>
+      <div class="form-group">
+        <label>အရောင်/ဆိုက် / Color/Size</label>
+        <input type="text" id="fColor" placeholder="e.g. Nude, Black, M/L">
+      </div>
+      <div class="form-group">
+        <label>ဈေးနှုန်း / Price (MMK)</label>
+        <input type="number" id="fPrice" placeholder="e.g. 32000" min="0">
+      </div>
+      <div class="form-group">
+        <label>အခြေအနေ / Type *</label>
+        <select id="fType">
+          <option value="Instock">✅ Instock</option>
+          <option value="Preorder">📦 Preorder</option>
+          <option value="Sold Out">🚫 Sold Out</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>အရေအတွက် / Quantity</label>
+        <input type="number" id="fQty" placeholder="e.g. 100" min="0">
+      </div>
+      <div class="form-group">
+        <label>ဓာတ်ပုံ / Image</label>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <input type="file" id="fImageFile" accept="image/*" onchange="handleImageUpload(event)" style="display:none">
+          <div id="imagePreview" style="width:100%;min-height:80px;border:2px dashed var(--surface3);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative" onclick="document.getElementById('fImageFile').click()">
+            <span id="imagePreviewText" style="color:var(--text3);font-size:.85rem;padding:20px;text-align:center">📷 ပုံထည့်ရန် နှိပ်ပါ<br>Click to upload image</span>
+            <img id="imagePreviewImg" style="max-width:100%;max-height:200px;display:none;border-radius:6px">
+          </div>
+          <input type="url" id="fImage" placeholder="ဒါမှမဟုတ် URL ထည့်ပါ (https://...)" style="font-size:.8rem">
+          <button type="button" class="btn btn-sm btn-secondary" onclick="clearImage()" style="align-self:flex-start">🗑️ ပုံဖယ်ရှားရန်</button>
+        </div>
+      </div>
+      <div class="form-group full">
+        <label>မှတ်ချက် / Notes</label>
+        <textarea id="fNotes" placeholder="မှတ်ချက်များ..."></textarea>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" onclick="closeModal('productModal')">ပယ်ဖျက်ရန်</button>
+    <button class="btn btn-primary" onclick="saveProduct()">သိမ်းဆည်းရန်</button>
+  </div>
+</div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal-overlay" id="importModal">
+<div class="modal">
+  <div class="modal-header">
+    <h2>Import Data</h2>
+    <button class="btn btn-icon btn-secondary" onclick="closeModal('importModal')">&times;</button>
+  </div>
+  <div class="modal-body">
+    <div class="import-area" onclick="document.getElementById('importFile').click()">
+      <svg width="48" height="48" fill="none" stroke="var(--text3)" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom:12px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><path d="M12 18v-6M9 15l3-3 3 3"/></svg>
+      <p style="color:var(--text2);margin-bottom:4px">Click to select JSON backup file</p>
+      <p style="color:var(--text3);font-size:.8rem">JSON ဖိုင်ကို ရွေးချယ်ပါ</p>
+      <input type="file" id="importFile" accept=".json" onchange="handleImport(event)">
+    </div>
+    <p style="margin-top:16px;color:var(--red);font-size:.8rem">⚠️ သတိပေးချက်: Import လုပ်ပါက လက်ရှိ data အားလုံး အစားထိုးခံရပါမည်။</p>
+  </div>
+</div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="deleteModal">
+<div class="modal" style="max-width:400px">
+  <div class="modal-header">
+    <h2>ဖျက်မည်လား?</h2>
+    <button class="btn btn-icon btn-secondary" onclick="closeModal('deleteModal')">&times;</button>
+  </div>
+  <div class="modal-body" style="text-align:center">
+    <p style="color:var(--text2);margin-bottom:8px">ဤပစ္စည်းကို ဖျက်ရန် သေချာပါသလား?</p>
+    <p id="deleteName" style="font-weight:600;color:var(--accent)"></p>
+  </div>
+  <div class="modal-footer" style="justify-content:center">
+    <button class="btn btn-secondary" onclick="closeModal('deleteModal')">မဖျက်ပါ</button>
+    <button class="btn btn-danger" id="confirmDeleteBtn">ဖျက်မည်</button>
+  </div>
+</div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ─── Data ───
+const STORAGE_KEY = 'myshop_inventory';
+const DEFAULT_DATA = [
+  {id:1,name:"Revlon Lipstick - Nude Velvet 125",category:"Beauty",color:"Nude",price:0,type:"Sold Out",qty:0,image:"",notes:""},
+  {id:2,name:"Revlon Lipstick - Pink It Up 415",category:"Beauty",color:"Pink",price:0,type:"Sold Out",qty:0,image:"",notes:""},
+  {id:3,name:"Revlon Lipstick - Mauve It Over",category:"Beauty",color:"Mauve",price:0,type:"Sold Out",qty:0,image:"",notes:""},
+  {id:4,name:"Revlon Lipstick - Seductive Sienna 015",category:"Beauty",color:"Sienna",price:0,type:"Sold Out",qty:0,image:"",notes:""},
+  {id:5,name:"Revlon Lipstick - Sandalwood 240",category:"Beauty",color:"Brown/Sandalwood",price:0,type:"Sold Out",qty:0,image:"",notes:""},
+  {id:6,name:"Mistine Lipstick - D05",category:"Beauty",color:"Nude/Brown",price:32000,type:"Instock",qty:0,image:"",notes:""},
+  {id:7,name:"Romand Juicy Roll Cheek - 03 White Peach",category:"Beauty",color:"Pink/Peach",price:27500,type:"Instock",qty:0,image:"",notes:""},
+  {id:8,name:"Romand Juicy Roll Cheek - 04 Apricot Beige",category:"Beauty",color:"Apricot/Beige",price:27500,type:"Instock",qty:0,image:"",notes:""},
+  {id:9,name:"PBT+PC OEM Keycaps (Gun Style / CS Theme)",category:"Tech",color:"Black & White",price:50000,type:"Preorder",qty:0,image:"",notes:""},
+  {id:10,name:"PBT Keycaps (Super Mario / Nintendo Theme)",category:"Tech",color:"Colorful",price:58000,type:"Preorder",qty:0,image:"",notes:""},
+  {id:11,name:"Wireless Gaming Mouse (2.4G + BT)",category:"Tech",color:"Black",price:25000,type:"Preorder",qty:0,image:"",notes:""},
+  {id:12,name:"AULA SC101 Gaming Mouse",category:"Tech",color:"White & Grey",price:75000,type:"Preorder",qty:0,image:"",notes:""},
+  {id:13,name:"Transparent/Frosted Keycaps 117-Key",category:"Tech",color:"Clear/White",price:48000,type:"Preorder",qty:0,image:"",notes:""},
+  {id:14,name:"PBT Topographic Keycaps 87+10 Key",category:"Tech",color:"Black with RGB Lines",price:35000,type:"Preorder",qty:0,image:"",notes:""}
+];
+
+function loadData(){
+  const d = localStorage.getItem(STORAGE_KEY);
+  if(!d){ saveData(DEFAULT_DATA); return DEFAULT_DATA; }
+  try{ return JSON.parse(d); }catch(e){ return DEFAULT_DATA; }
+}
+function saveData(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+function getNextId(data){ return data.length ? Math.max(...data.map(i=>i.id))+1 : 1; }
+
+let inventory = loadData();
+
+// ─── Image Upload ───
+function handleImageUpload(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const dataUrl = e.target.result;
+    document.getElementById('fImage').value = dataUrl;
+    document.getElementById('imagePreviewImg').src = dataUrl;
+    document.getElementById('imagePreviewImg').style.display = 'block';
+    document.getElementById('imagePreviewText').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+function clearImage(){
+  document.getElementById('fImage').value = '';
+  document.getElementById('fImageFile').value = '';
+  document.getElementById('imagePreviewImg').style.display = 'none';
+  document.getElementById('imagePreviewImg').src = '';
+  document.getElementById('imagePreviewText').style.display = 'block';
+}
+function showImagePreview(url){
+  if(url){
+    document.getElementById('imagePreviewImg').src = url;
+    document.getElementById('imagePreviewImg').style.display = 'block';
+    document.getElementById('imagePreviewText').style.display = 'none';
+  } else {
+    clearImage();
+  }
+}
+
+// ─── Format ───
+function fmtPrice(p){
+  if(!p || p===0) return '—';
+  return Number(p).toLocaleString('en-US')+' MMK';
+}
+function fmtQty(q){ return q ? q.toLocaleString() : '—'; }
+
+// ─── Dashboard ───
+function renderDashboard(){
+  const total = inventory.length;
+  const totalQty = inventory.reduce((s,i)=>s+(i.qty||0),0);
+  const totalVal = inventory.reduce((s,i)=>s+(i.price||0)*(i.qty||0),0);
+  const instock = inventory.filter(i=>i.type==='Instock').length;
+  const preorder = inventory.filter(i=>i.type==='Preorder').length;
+  const soldout = inventory.filter(i=>i.type==='Sold Out').length;
+
+  document.getElementById('dashboard').innerHTML = `
+    <div class="stat-card purple">
+      <div class="stat-label">ပစ္စည်းစုစုပေါင်း / Total Items</div>
+      <div class="stat-value">${total}</div>
+      <div class="stat-sub">အရေအတွက်: ${totalQty.toLocaleString()} pcs</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">စုစုပေါင်းတန်ဖိုး / Total Value</div>
+      <div class="stat-value">${totalVal.toLocaleString()}</div>
+      <div class="stat-sub">MMK</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">✅ Instock</div>
+      <div class="stat-value">${instock}</div>
+      <div class="stat-sub">ရှိနေသော ပစ္စည်းများ</div>
+    </div>
+    <div class="stat-card yellow">
+      <div class="stat-label">📦 Preorder</div>
+      <div class="stat-value">${preorder}</div>
+      <div class="stat-sub">ကြိုတင်မှာယူ</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-label">🚫 Sold Out</div>
+      <div class="stat-value">${soldout}</div>
+      <div class="stat-sub">ကုန်သွားပြီ</div>
+    </div>
+  `;
+}
+
+// ─── Categories ───
+function updateCategoryFilter(){
+  const cats = [...new Set(inventory.map(i=>i.category).filter(Boolean))].sort();
+  const sel = document.getElementById('filterCategory');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All Categories</option>' + cats.map(c=>`<option value="${c}"${c===current?' selected':''}>${c}</option>`).join('');
+  
+  const dl = document.getElementById('catList');
+  dl.innerHTML = cats.map(c=>`<option value="${c}">`).join('');
+}
+
+// ─── Table ───
+function renderTable(){
+  const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  const catFilter = document.getElementById('filterCategory').value;
+  const typeFilter = document.getElementById('filterType').value;
+
+  let filtered = inventory.filter(item => {
+    if(search && !item.name.toLowerCase().includes(search) && !(item.category||'').toLowerCase().includes(search) && !(item.color||'').toLowerCase().includes(search) && !(item.notes||'').toLowerCase().includes(search)) return false;
+    if(catFilter && item.category !== catFilter) return false;
+    if(typeFilter && item.type !== typeFilter) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('tableBody');
+  if(!filtered.length){
+    tbody.innerHTML = `<tr><td colspan="9" class="no-data">
+      <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+      <p>ပစ္စည်းမတွေ့ပါ / No items found</p>
+    </td></tr>`;
+  } else {
+    tbody.innerHTML = filtered.map(item => {
+      const badgeClass = item.type==='Instock'?'badge-instock':item.type==='Preorder'?'badge-preorder':'badge-soldout';
+      const img = item.image 
+        ? `<img src="${item.image}" class="img-preview" alt="" onerror="this.style.display='none'">`
+        : `<div class="img-placeholder">📦</div>`;
+      return `<tr>
+        <td>${img}</td>
+        <td class="item-name">${esc(item.name)}</td>
+        <td><span class="item-cat">${esc(item.category||'—')}</span></td>
+        <td class="item-color">${esc(item.color||'—')}</td>
+        <td class="item-price">${fmtPrice(item.price)}</td>
+        <td><span class="badge ${badgeClass}">${item.type}</span></td>
+        <td>${fmtQty(item.qty)}</td>
+        <td style="color:var(--text3);font-size:.85rem;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(item.notes||'')}">${esc(item.notes||'—')}</td>
+        <td>
+          <div class="actions-cell">
+            <button class="btn btn-sm btn-secondary" onclick="openEditModal(${item.id})" title="Edit">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="confirmDelete(${item.id})" title="Delete">🗑️</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  const filteredVal = filtered.reduce((s,i)=>s+(i.price||0)*(i.qty||0),0);
+  document.getElementById('tableCount').textContent = `ပြသနေသည် ${filtered.length} / ${inventory.length} items`;
+  document.getElementById('tableValue').textContent = `တန်ဖိုး: ${filteredVal.toLocaleString()} MMK`;
+}
+
+function esc(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
+
+// ─── Modal ───
+function openAddModal(){
+  document.getElementById('editId').value = '';
+  document.getElementById('modalTitle').textContent = 'ပစ္စည်းအသစ်ထည့်ရန်';
+  ['fName','fCategory','fColor','fPrice','fQty','fImage','fNotes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fType').value = 'Instock';
+  clearImage();
+  openModal('productModal');
+}
+
+function openEditModal(id){
+  const item = inventory.find(i=>i.id===id);
+  if(!item) return;
+  document.getElementById('editId').value = id;
+  document.getElementById('modalTitle').textContent = 'ပစ္စည်းပြင်ဆင်ရန်';
+  document.getElementById('fName').value = item.name;
+  document.getElementById('fCategory').value = item.category||'';
+  document.getElementById('fColor').value = item.color||'';
+  document.getElementById('fPrice').value = item.price||'';
+  document.getElementById('fType').value = item.type;
+  document.getElementById('fQty').value = item.qty||'';
+  document.getElementById('fImage').value = item.image||'';
+  showImagePreview(item.image||'');
+  document.getElementById('fNotes').value = item.notes||'';
+  openModal('productModal');
+}
+
+function saveProduct(){
+  const name = document.getElementById('fName').value.trim();
+  const category = document.getElementById('fCategory').value.trim();
+  const type = document.getElementById('fType').value;
+  if(!name){toast('ပစ္စည်းအမည် ဖြည့်ပါ','error');return;}
+  if(!category){toast('အမျိုးအစား ဖြည့်ပါ','error');return;}
+
+  const item = {
+    name,
+    category,
+    color: document.getElementById('fColor').value.trim(),
+    price: Number(document.getElementById('fPrice').value)||0,
+    type,
+    qty: Number(document.getElementById('fQty').value)||0,
+    image: document.getElementById('fImage').value.trim(),
+    notes: document.getElementById('fNotes').value.trim()
+  };
+
+  const editId = document.getElementById('editId').value;
+  if(editId){
+    const idx = inventory.findIndex(i=>i.id===Number(editId));
+    if(idx>-1){ inventory[idx] = {...inventory[idx],...item}; }
+    toast('ပြင်ဆင်ပြီးပါပြီ ✅','success');
+  } else {
+    item.id = getNextId(inventory);
+    inventory.push(item);
+    toast('ထည့်သွင်းပြီးပါပြီ ✅','success');
+  }
+
+  saveData(inventory);
+  closeModal('productModal');
+  refresh();
+}
+
+function confirmDelete(id){
+  const item = inventory.find(i=>i.id===id);
+  if(!item) return;
+  document.getElementById('deleteName').textContent = item.name;
+  document.getElementById('confirmDeleteBtn').onclick = ()=>{
+    inventory = inventory.filter(i=>i.id!==id);
+    saveData(inventory);
+    closeModal('deleteModal');
+    refresh();
+    toast('ဖျက်ပြီးပါပြီ 🗑️','info');
+  };
+  openModal('deleteModal');
+}
+
+function openModal(id){ document.getElementById(id).classList.add('active'); }
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el=>{
+  el.addEventListener('click',e=>{if(e.target===el)closeModal(el.id);});
+});
+
+// ─── Export / Import ───
+function exportData(){
+  const blob = new Blob([JSON.stringify(inventory,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const d = new Date();
+  a.href = url;
+  a.download = `myshop-backup-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Export ပြီးပါပြီ 📁','success');
+}
+
+function openImportModal(){
+  document.getElementById('importFile').value = '';
+  openModal('importModal');
+}
+
+function handleImport(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(!Array.isArray(data)) throw new Error('Invalid format');
+      // Validate structure
+      data.forEach((item,i)=>{
+        if(!item.name) throw new Error(`Item ${i+1} missing name`);
+        item.id = item.id || i+1;
+        item.category = item.category || '';
+        item.color = item.color || '';
+        item.price = Number(item.price) || 0;
+        item.type = item.type || 'Instock';
+        item.qty = Number(item.qty) || 0;
+        item.image = item.image || '';
+        item.notes = item.notes || '';
+      });
+      inventory = data;
+      saveData(inventory);
+      closeModal('importModal');
+      refresh();
+      toast(`Import ပြီးပါပြီ — ${data.length} items ✅`,'success');
+    }catch(err){
+      toast('Import မအောင်မြင်ပါ: '+err.message,'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ─── Toast ───
+function toast(msg,type='info'){
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.innerHTML = msg;
+  container.appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(40px)';el.style.transition='all .3s';setTimeout(()=>el.remove(),300);},3000);
+}
+
+// ─── Refresh All ───
+function refresh(){
+  renderDashboard();
+  updateCategoryFilter();
+  renderTable();
+}
+
+// ─── Keyboard shortcut ───
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    document.querySelectorAll('.modal-overlay.active').forEach(m=>closeModal(m.id));
+  }
+  if(e.key==='/' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+  }
+});
+
+// ─── Init ───
+refresh();
+</script>
+</body>
+</html>
