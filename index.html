@@ -97,6 +97,9 @@ td{padding:12px 16px;border-top:1px solid var(--surface3);font-size:.9rem;vertic
 tr:hover td{background:var(--accent-glow)}
 .item-name{font-weight:600;color:var(--text);max-width:260px}
 .item-cat{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:500;background:rgba(168,85,247,.15);color:var(--accent)}
+.item-cat.cat-lipstick{background:rgba(225,29,72,.15);color:#fb7185}
+.item-cat.cat-keycaps{background:rgba(59,130,246,.15);color:#60a5fa}
+.item-cat.cat-mouses{background:rgba(16,185,129,.15);color:#34d399}
 .item-color{color:var(--text2);font-size:.85rem}
 .item-price{font-weight:600;color:var(--green);white-space:nowrap}
 
@@ -854,7 +857,7 @@ function renderTable() {
       return `<tr>
         <td>${img}</td>
         <td class="item-name">${esc(item.name)}</td>
-        <td><span class="item-cat">${esc(item.category || '—')}</span></td>
+        <td><span class="item-cat ${item.category ? 'cat-' + item.category.toLowerCase().replace(/\s+/g,'-') : ''}">${esc(item.category || '—')}</span></td>
         <td class="item-color">${esc(item.color || '—')}</td>
         <td class="item-price">${fmtPrice(item.price)}</td>
         <td><span class="badge ${badgeClass}">${item.type}</span></td>
