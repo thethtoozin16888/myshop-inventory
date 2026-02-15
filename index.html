@@ -28,7 +28,25 @@ a{color:var(--accent);text-decoration:none}
 .logo-icon{width:42px;height:42px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
 .logo h1{font-size:1.4rem;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700}
 .logo small{display:block;font-size:.75rem;color:var(--text3);-webkit-text-fill-color:var(--text3)}
-.header-actions{display:flex;gap:8px;flex-wrap:wrap}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* Sync Status Indicator */
+.sync-indicator{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.75rem;font-weight:500;cursor:pointer;transition:all .2s;border:1px solid transparent}
+.sync-indicator.synced{background:rgba(34,197,94,.1);color:var(--green);border-color:rgba(34,197,94,.2)}
+.sync-indicator.syncing{background:rgba(59,130,246,.1);color:var(--blue);border-color:rgba(59,130,246,.2)}
+.sync-indicator.offline{background:rgba(239,68,68,.1);color:var(--red);border-color:rgba(239,68,68,.2)}
+.sync-indicator.local{background:rgba(234,179,8,.1);color:var(--yellow);border-color:rgba(234,179,8,.2)}
+.sync-indicator.error{background:rgba(239,68,68,.1);color:var(--red);border-color:rgba(239,68,68,.2)}
+.sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sync-indicator.synced .sync-dot{background:var(--green)}
+.sync-indicator.syncing .sync-dot{background:var(--blue);animation:pulse 1s infinite}
+.sync-indicator.offline .sync-dot{background:var(--red)}
+.sync-indicator.local .sync-dot{background:var(--yellow)}
+.sync-indicator.error .sync-dot{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Pending badge */
+.pending-badge{background:var(--red);color:#fff;font-size:.65rem;padding:2px 6px;border-radius:10px;margin-left:4px;font-weight:700}
 
 /* Buttons */
 .btn{padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:500;transition:all .2s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
@@ -98,7 +116,6 @@ tr:hover td{background:var(--accent-glow)}
 .modal{background:var(--surface);border:1px solid var(--surface3);border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow)}
 .modal-header{padding:20px 24px;border-bottom:1px solid var(--surface3);display:flex;justify-content:space-between;align-items:center}
 .modal-header h2{font-size:1.1rem;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.modal-body{padding:24px}
 .modal-footer{padding:16px 24px;border-top:1px solid var(--surface3);display:flex;justify-content:flex-end;gap:8px}
 
 /* Form */
@@ -109,6 +126,7 @@ tr:hover td{background:var(--accent-glow)}
 .form-group input,.form-group textarea,.form-group select{padding:10px 14px;background:var(--surface2);border:1px solid var(--surface3);border-radius:8px;color:var(--text);font-size:.9rem;outline:none;transition:border-color .2s}
 .form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--accent)}
 .form-group textarea{resize:vertical;min-height:60px;font-family:inherit}
+.modal-body{padding:24px}
 
 /* Image preview */
 .img-preview{width:48px;height:48px;border-radius:8px;object-fit:cover;background:var(--surface2);border:1px solid var(--surface3)}
@@ -120,6 +138,7 @@ tr:hover td{background:var(--accent-glow)}
 .toast-success{background:var(--green)}
 .toast-error{background:var(--red)}
 .toast-info{background:var(--blue)}
+.toast-warning{background:var(--yellow);color:#000}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
 
 /* Import modal */
@@ -147,6 +166,7 @@ tr:hover td{background:var(--accent-glow)}
   .dashboard{grid-template-columns:1fr 1fr}
   .stat-card{padding:14px}
   .header-actions .btn span.btn-text{display:none}
+  .sync-indicator span.sync-text{display:none}
 }
 </style>
 </head>
@@ -163,6 +183,11 @@ tr:hover td{background:var(--accent-glow)}
     </div>
   </div>
   <div class="header-actions">
+    <!-- Sync Status -->
+    <div class="sync-indicator local" id="syncIndicator" onclick="manualSync()" title="Click to sync / နှိပ်ပြီး Sync လုပ်ရန်">
+      <div class="sync-dot"></div>
+      <span class="sync-text" id="syncText">Local Only</span>
+    </div>
     <button class="btn btn-primary" onclick="openAddModal()">
       <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
       <span class="btn-text">ပစ္စည်းထည့်ရန်</span>
@@ -336,8 +361,19 @@ tr:hover td{background:var(--accent-glow)}
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
-// ─── Data ───
+// ══════════════════════════════════════════════════════════════════
+// CONFIGURATION — Paste your deployed Google Apps Script URL here
+// ══════════════════════════════════════════════════════════════════
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbz5VRvpDCyFTSGvTCy3EVb1MO9DvnFJyaSVGA14aLp_GC_pnGZH5VBuxzBe16tiY30y/exec'; // ← APPS SCRIPT WEB APP URL
+// Example: 'https://script.google.com/macros/s/AKfycbx.../exec'
+// ══════════════════════════════════════════════════════════════════
+
+// ─── Constants ───
 const STORAGE_KEY = 'myshop_inventory';
+const QUEUE_KEY = 'myshop_offline_queue';
+const SYNC_STATE_KEY = 'myshop_sync_state';
+const IMAGE_CACHE_KEY = 'myshop_image_cache';
+
 const DEFAULT_DATA = [
   {id:1,name:"Revlon Lipstick - Nude Velvet 125",category:"Beauty",color:"Nude",price:0,type:"Sold Out",qty:0,image:"",notes:""},
   {id:2,name:"Revlon Lipstick - Pink It Up 415",category:"Beauty",color:"Pink",price:0,type:"Sold Out",qty:0,image:"",notes:""},
@@ -355,22 +391,357 @@ const DEFAULT_DATA = [
   {id:14,name:"PBT Topographic Keycaps 87+10 Key",category:"Tech",color:"Black with RGB Lines",price:35000,type:"Preorder",qty:0,image:"",notes:""}
 ];
 
-function loadData(){
-  const d = localStorage.getItem(STORAGE_KEY);
-  if(!d){ saveData(DEFAULT_DATA); return DEFAULT_DATA; }
-  try{ return JSON.parse(d); }catch(e){ return DEFAULT_DATA; }
-}
-function saveData(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
-function getNextId(data){ return data.length ? Math.max(...data.map(i=>i.id))+1 : 1; }
+// ─── State ───
+let inventory = [];
+let offlineQueue = [];
+let syncStatus = 'local'; // synced | syncing | offline | local | error
+let isOnline = navigator.onLine;
+let isSheetsConfigured = false;
 
-let inventory = loadData();
+// ─── Initialize ───
+function init() {
+  isSheetsConfigured = SHEET_URL && SHEET_URL.length > 10;
+  inventory = loadLocal();
+  offlineQueue = loadQueue();
+  
+  if (isSheetsConfigured) {
+    updateSyncUI('syncing');
+    fetchFromSheet().then(() => {
+      // Process any queued operations
+      if (offlineQueue.length > 0) {
+        processQueue();
+      }
+    }).catch(() => {
+      updateSyncUI('offline');
+    });
+  } else {
+    updateSyncUI('local');
+  }
+  
+  refresh();
+  
+  // Listen for online/offline
+  window.addEventListener('online', () => {
+    isOnline = true;
+    if (isSheetsConfigured) {
+      toast('အင်တာနက် ပြန်ရပါပြီ 🌐', 'success');
+      processQueue().then(() => fetchFromSheet());
+    }
+  });
+  window.addEventListener('offline', () => {
+    isOnline = false;
+    if (isSheetsConfigured) {
+      updateSyncUI('offline');
+      toast('အင်တာနက် ပြတ်နေပါသည် 📡', 'warning');
+    }
+  });
+  
+  // Auto-sync every 2 minutes if configured
+  if (isSheetsConfigured) {
+    setInterval(() => {
+      if (isOnline && offlineQueue.length === 0) {
+        fetchFromSheet(true); // silent refresh
+      }
+    }, 120000);
+  }
+}
+
+// ─── Local Storage ───
+function loadLocal() {
+  const d = localStorage.getItem(STORAGE_KEY);
+  if (!d) { saveLocal(DEFAULT_DATA); return [...DEFAULT_DATA]; }
+  try { return JSON.parse(d); } catch(e) { return [...DEFAULT_DATA]; }
+}
+
+function saveLocal(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadQueue() {
+  try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+
+function saveQueue() {
+  localStorage.setItem(QUEUE_KEY, JSON.stringify(offlineQueue));
+}
+
+function getNextId(data) { return data.length ? Math.max(...data.map(i => i.id)) + 1 : 1; }
+
+// ─── Image handling ───
+// Images: base64 images are stored in localStorage only (too large for sheets)
+// URL images sync to sheets normally
+
+function isBase64Image(str) {
+  return str && (str.startsWith('data:image') || str.length > 500);
+}
+
+function getImageCache() {
+  try { return JSON.parse(localStorage.getItem(IMAGE_CACHE_KEY) || '{}'); }
+  catch(e) { return {}; }
+}
+
+function setImageCache(id, dataUrl) {
+  const cache = getImageCache();
+  cache[id] = dataUrl;
+  localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(cache));
+}
+
+function removeImageCache(id) {
+  const cache = getImageCache();
+  delete cache[id];
+  localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(cache));
+}
+
+// Prepare item for sheet (strip base64 images)
+function itemForSheet(item) {
+  const copy = { ...item };
+  if (isBase64Image(copy.image)) {
+    // Store in local cache, don't send to sheet
+    setImageCache(copy.id, copy.image);
+    copy.image = '__LOCAL_IMAGE__'; // marker
+  }
+  return copy;
+}
+
+// Restore local images after fetching from sheet
+function restoreLocalImages(items) {
+  const cache = getImageCache();
+  return items.map(item => {
+    if (item.image === '__LOCAL_IMAGE__' && cache[item.id]) {
+      item.image = cache[item.id];
+    }
+    return item;
+  });
+}
+
+// ─── Google Sheets API ───
+
+async function sheetRequest(method, body) {
+  if (!isSheetsConfigured) throw new Error('Sheet URL not configured');
+  if (!isOnline) throw new Error('Offline');
+  
+  const opts = { redirect: 'follow' };
+  
+  if (method === 'GET') {
+    const params = new URLSearchParams(body || {});
+    const url = SHEET_URL + '?' + params.toString();
+    opts.method = 'GET';
+    const resp = await fetch(url, opts);
+    return await resp.json();
+  } else {
+    opts.method = 'POST';
+    opts.headers = { 'Content-Type': 'text/plain' }; // text/plain avoids CORS preflight
+    opts.body = JSON.stringify(body);
+    const resp = await fetch(SHEET_URL, opts);
+    return await resp.json();
+  }
+}
+
+async function fetchFromSheet(silent = false) {
+  if (!isSheetsConfigured || !isOnline) return;
+  
+  try {
+    if (!silent) updateSyncUI('syncing');
+    const result = await sheetRequest('GET', { action: 'list' });
+    
+    if (result.success) {
+      inventory = restoreLocalImages(result.items || []);
+      saveLocal(inventory);
+      updateSyncUI('synced');
+      if (!silent) refresh();
+    } else {
+      throw new Error(result.error || 'Failed to fetch');
+    }
+  } catch (err) {
+    console.error('Fetch from sheet failed:', err);
+    if (!silent) {
+      updateSyncUI(isOnline ? 'error' : 'offline');
+    }
+  }
+}
+
+async function addToSheet(item) {
+  if (!isSheetsConfigured || !isOnline) {
+    queueOperation({ action: 'add', item: itemForSheet(item) });
+    return;
+  }
+  
+  try {
+    updateSyncUI('syncing');
+    const result = await sheetRequest('POST', { action: 'add', item: itemForSheet(item) });
+    if (result.success && result.item) {
+      // Update local item with server-assigned id if different
+      const oldId = item.id;
+      if (result.item.id !== oldId) {
+        const idx = inventory.findIndex(i => i.id === oldId);
+        if (idx > -1) {
+          inventory[idx].id = result.item.id;
+          // Update image cache key
+          const cache = getImageCache();
+          if (cache[oldId]) {
+            cache[result.item.id] = cache[oldId];
+            delete cache[oldId];
+            localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(cache));
+          }
+        }
+        saveLocal(inventory);
+        refresh();
+      }
+    }
+    updateSyncUI('synced');
+  } catch (err) {
+    console.error('Add to sheet failed:', err);
+    queueOperation({ action: 'add', item: itemForSheet(item) });
+    updateSyncUI(isOnline ? 'error' : 'offline');
+  }
+}
+
+async function updateOnSheet(item) {
+  if (!isSheetsConfigured || !isOnline) {
+    queueOperation({ action: 'update', item: itemForSheet(item) });
+    return;
+  }
+  
+  try {
+    updateSyncUI('syncing');
+    await sheetRequest('POST', { action: 'update', item: itemForSheet(item) });
+    updateSyncUI('synced');
+  } catch (err) {
+    console.error('Update on sheet failed:', err);
+    queueOperation({ action: 'update', item: itemForSheet(item) });
+    updateSyncUI(isOnline ? 'error' : 'offline');
+  }
+}
+
+async function deleteFromSheet(id) {
+  if (!isSheetsConfigured || !isOnline) {
+    queueOperation({ action: 'delete', id: id });
+    return;
+  }
+  
+  try {
+    updateSyncUI('syncing');
+    await sheetRequest('POST', { action: 'delete', id: id });
+    removeImageCache(id);
+    updateSyncUI('synced');
+  } catch (err) {
+    console.error('Delete from sheet failed:', err);
+    queueOperation({ action: 'delete', id: id });
+    updateSyncUI(isOnline ? 'error' : 'offline');
+  }
+}
+
+async function fullSyncToSheet() {
+  if (!isSheetsConfigured || !isOnline) return;
+  
+  try {
+    updateSyncUI('syncing');
+    const itemsForSheet = inventory.map(i => itemForSheet(i));
+    const result = await sheetRequest('POST', { action: 'sync', items: itemsForSheet });
+    if (result.success) {
+      updateSyncUI('synced');
+      toast(`Sync ပြီးပါပြီ — ${result.count} items ☁️`, 'success');
+    } else {
+      throw new Error(result.error);
+    }
+  } catch (err) {
+    console.error('Full sync failed:', err);
+    updateSyncUI('error');
+    toast('Sync မအောင်မြင်ပါ: ' + err.message, 'error');
+  }
+}
+
+// ─── Offline Queue ───
+
+function queueOperation(op) {
+  op.timestamp = Date.now();
+  offlineQueue.push(op);
+  saveQueue();
+  updateSyncUI(isOnline ? 'error' : 'offline');
+}
+
+async function processQueue() {
+  if (!isSheetsConfigured || !isOnline || offlineQueue.length === 0) return;
+  
+  updateSyncUI('syncing');
+  const queue = [...offlineQueue];
+  offlineQueue = [];
+  saveQueue();
+  
+  let failed = [];
+  
+  for (const op of queue) {
+    try {
+      await sheetRequest('POST', op);
+    } catch (err) {
+      console.error('Queue operation failed:', err, op);
+      failed.push(op);
+    }
+  }
+  
+  if (failed.length > 0) {
+    offlineQueue = failed;
+    saveQueue();
+    updateSyncUI('error');
+    toast(`${failed.length} operations failed, will retry`, 'warning');
+  } else {
+    updateSyncUI('synced');
+    // Refresh from sheet to get latest state
+    await fetchFromSheet(true);
+    refresh();
+  }
+}
+
+// ─── Manual Sync ───
+async function manualSync() {
+  if (!isSheetsConfigured) {
+    toast('Google Sheets URL ထည့်ပါ။ Setup guide ကို ဖတ်ပါ။', 'warning');
+    return;
+  }
+  if (!isOnline) {
+    toast('အင်တာနက် ပြတ်နေပါသည်', 'warning');
+    return;
+  }
+  
+  if (offlineQueue.length > 0) {
+    await processQueue();
+  }
+  await fetchFromSheet();
+  refresh();
+  toast('Sync ပြီးပါပြီ ☁️', 'success');
+}
+
+// ─── Sync UI ───
+function updateSyncUI(status) {
+  syncStatus = status;
+  const indicator = document.getElementById('syncIndicator');
+  const text = document.getElementById('syncText');
+  
+  indicator.className = 'sync-indicator ' + status;
+  
+  const labels = {
+    synced: '☁️ Synced',
+    syncing: '⟳ Syncing...',
+    offline: '📡 Offline',
+    local: '💾 Local Only',
+    error: '⚠️ Sync Error'
+  };
+  
+  let label = labels[status] || status;
+  if (offlineQueue.length > 0 && status !== 'syncing') {
+    label += ` <span class="pending-badge">${offlineQueue.length}</span>`;
+  }
+  
+  text.innerHTML = label;
+}
 
 // ─── Image Upload ───
-function handleImageUpload(event){
+function handleImageUpload(event) {
   const file = event.target.files[0];
-  if(!file) return;
+  if (!file) return;
   const reader = new FileReader();
-  reader.onload = function(e){
+  reader.onload = function(e) {
     const dataUrl = e.target.result;
     document.getElementById('fImage').value = dataUrl;
     document.getElementById('imagePreviewImg').src = dataUrl;
@@ -379,15 +750,17 @@ function handleImageUpload(event){
   };
   reader.readAsDataURL(file);
 }
-function clearImage(){
+
+function clearImage() {
   document.getElementById('fImage').value = '';
   document.getElementById('fImageFile').value = '';
   document.getElementById('imagePreviewImg').style.display = 'none';
   document.getElementById('imagePreviewImg').src = '';
   document.getElementById('imagePreviewText').style.display = 'block';
 }
-function showImagePreview(url){
-  if(url){
+
+function showImagePreview(url) {
+  if (url) {
     document.getElementById('imagePreviewImg').src = url;
     document.getElementById('imagePreviewImg').style.display = 'block';
     document.getElementById('imagePreviewText').style.display = 'none';
@@ -397,20 +770,20 @@ function showImagePreview(url){
 }
 
 // ─── Format ───
-function fmtPrice(p){
-  if(!p || p===0) return '—';
-  return Number(p).toLocaleString('en-US')+' MMK';
+function fmtPrice(p) {
+  if (!p || p === 0) return '—';
+  return Number(p).toLocaleString('en-US') + ' MMK';
 }
-function fmtQty(q){ return q ? q.toLocaleString() : '—'; }
+function fmtQty(q) { return q ? q.toLocaleString() : '—'; }
 
 // ─── Dashboard ───
-function renderDashboard(){
+function renderDashboard() {
   const total = inventory.length;
-  const totalQty = inventory.reduce((s,i)=>s+(i.qty||0),0);
-  const totalVal = inventory.reduce((s,i)=>s+(i.price||0)*(i.qty||0),0);
-  const instock = inventory.filter(i=>i.type==='Instock').length;
-  const preorder = inventory.filter(i=>i.type==='Preorder').length;
-  const soldout = inventory.filter(i=>i.type==='Sold Out').length;
+  const totalQty = inventory.reduce((s, i) => s + (i.qty || 0), 0);
+  const totalVal = inventory.reduce((s, i) => s + (i.price || 0) * (i.qty || 0), 0);
+  const instock = inventory.filter(i => i.type === 'Instock').length;
+  const preorder = inventory.filter(i => i.type === 'Preorder').length;
+  const soldout = inventory.filter(i => i.type === 'Sold Out').length;
 
   document.getElementById('dashboard').innerHTML = `
     <div class="stat-card purple">
@@ -442,50 +815,51 @@ function renderDashboard(){
 }
 
 // ─── Categories ───
-function updateCategoryFilter(){
-  const cats = [...new Set(inventory.map(i=>i.category).filter(Boolean))].sort();
+function updateCategoryFilter() {
+  const cats = [...new Set(inventory.map(i => i.category).filter(Boolean))].sort();
   const sel = document.getElementById('filterCategory');
   const current = sel.value;
-  sel.innerHTML = '<option value="">All Categories</option>' + cats.map(c=>`<option value="${c}"${c===current?' selected':''}>${c}</option>`).join('');
+  sel.innerHTML = '<option value="">All Categories</option>' + cats.map(c => `<option value="${c}"${c === current ? ' selected' : ''}>${c}</option>`).join('');
   
   const dl = document.getElementById('catList');
-  dl.innerHTML = cats.map(c=>`<option value="${c}">`).join('');
+  dl.innerHTML = cats.map(c => `<option value="${c}">`).join('');
 }
 
 // ─── Table ───
-function renderTable(){
+function renderTable() {
   const search = document.getElementById('searchInput').value.toLowerCase().trim();
   const catFilter = document.getElementById('filterCategory').value;
   const typeFilter = document.getElementById('filterType').value;
 
   let filtered = inventory.filter(item => {
-    if(search && !item.name.toLowerCase().includes(search) && !(item.category||'').toLowerCase().includes(search) && !(item.color||'').toLowerCase().includes(search) && !(item.notes||'').toLowerCase().includes(search)) return false;
-    if(catFilter && item.category !== catFilter) return false;
-    if(typeFilter && item.type !== typeFilter) return false;
+    if (search && !item.name.toLowerCase().includes(search) && !(item.category || '').toLowerCase().includes(search) && !(item.color || '').toLowerCase().includes(search) && !(item.notes || '').toLowerCase().includes(search)) return false;
+    if (catFilter && item.category !== catFilter) return false;
+    if (typeFilter && item.type !== typeFilter) return false;
     return true;
   });
 
   const tbody = document.getElementById('tableBody');
-  if(!filtered.length){
+  if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="9" class="no-data">
       <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
       <p>ပစ္စည်းမတွေ့ပါ / No items found</p>
     </td></tr>`;
   } else {
     tbody.innerHTML = filtered.map(item => {
-      const badgeClass = item.type==='Instock'?'badge-instock':item.type==='Preorder'?'badge-preorder':'badge-soldout';
-      const img = item.image 
-        ? `<img src="${item.image}" class="img-preview" alt="" onerror="this.style.display='none'">`
+      const badgeClass = item.type === 'Instock' ? 'badge-instock' : item.type === 'Preorder' ? 'badge-preorder' : 'badge-soldout';
+      const imgSrc = item.image && item.image !== '__LOCAL_IMAGE__' ? item.image : '';
+      const img = imgSrc
+        ? `<img src="${imgSrc}" class="img-preview" alt="" onerror="this.style.display='none'">`
         : `<div class="img-placeholder">📦</div>`;
       return `<tr>
         <td>${img}</td>
         <td class="item-name">${esc(item.name)}</td>
-        <td><span class="item-cat">${esc(item.category||'—')}</span></td>
-        <td class="item-color">${esc(item.color||'—')}</td>
+        <td><span class="item-cat">${esc(item.category || '—')}</span></td>
+        <td class="item-color">${esc(item.color || '—')}</td>
         <td class="item-price">${fmtPrice(item.price)}</td>
         <td><span class="badge ${badgeClass}">${item.type}</span></td>
         <td>${fmtQty(item.qty)}</td>
-        <td style="color:var(--text3);font-size:.85rem;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(item.notes||'')}">${esc(item.notes||'—')}</td>
+        <td style="color:var(--text3);font-size:.85rem;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(item.notes || '')}">${esc(item.notes || '—')}</td>
         <td>
           <div class="actions-cell">
             <button class="btn btn-sm btn-secondary" onclick="openEditModal(${item.id})" title="Edit">✏️</button>
@@ -496,126 +870,132 @@ function renderTable(){
     }).join('');
   }
 
-  const filteredVal = filtered.reduce((s,i)=>s+(i.price||0)*(i.qty||0),0);
+  const filteredVal = filtered.reduce((s, i) => s + (i.price || 0) * (i.qty || 0), 0);
   document.getElementById('tableCount').textContent = `ပြသနေသည် ${filtered.length} / ${inventory.length} items`;
   document.getElementById('tableValue').textContent = `တန်ဖိုး: ${filteredVal.toLocaleString()} MMK`;
 }
 
-function esc(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 // ─── Modal ───
-function openAddModal(){
+function openAddModal() {
   document.getElementById('editId').value = '';
   document.getElementById('modalTitle').textContent = 'ပစ္စည်းအသစ်ထည့်ရန်';
-  ['fName','fCategory','fColor','fPrice','fQty','fImage','fNotes'].forEach(id=>document.getElementById(id).value='');
+  ['fName', 'fCategory', 'fColor', 'fPrice', 'fQty', 'fImage', 'fNotes'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('fType').value = 'Instock';
   clearImage();
   openModal('productModal');
 }
 
-function openEditModal(id){
-  const item = inventory.find(i=>i.id===id);
-  if(!item) return;
+function openEditModal(id) {
+  const item = inventory.find(i => i.id === id);
+  if (!item) return;
   document.getElementById('editId').value = id;
   document.getElementById('modalTitle').textContent = 'ပစ္စည်းပြင်ဆင်ရန်';
   document.getElementById('fName').value = item.name;
-  document.getElementById('fCategory').value = item.category||'';
-  document.getElementById('fColor').value = item.color||'';
-  document.getElementById('fPrice').value = item.price||'';
+  document.getElementById('fCategory').value = item.category || '';
+  document.getElementById('fColor').value = item.color || '';
+  document.getElementById('fPrice').value = item.price || '';
   document.getElementById('fType').value = item.type;
-  document.getElementById('fQty').value = item.qty||'';
-  document.getElementById('fImage').value = item.image||'';
-  showImagePreview(item.image||'');
-  document.getElementById('fNotes').value = item.notes||'';
+  document.getElementById('fQty').value = item.qty || '';
+  document.getElementById('fImage').value = item.image || '';
+  showImagePreview(item.image || '');
+  document.getElementById('fNotes').value = item.notes || '';
   openModal('productModal');
 }
 
-function saveProduct(){
+function saveProduct() {
   const name = document.getElementById('fName').value.trim();
   const category = document.getElementById('fCategory').value.trim();
   const type = document.getElementById('fType').value;
-  if(!name){toast('ပစ္စည်းအမည် ဖြည့်ပါ','error');return;}
-  if(!category){toast('အမျိုးအစား ဖြည့်ပါ','error');return;}
+  if (!name) { toast('ပစ္စည်းအမည် ဖြည့်ပါ', 'error'); return; }
+  if (!category) { toast('အမျိုးအစား ဖြည့်ပါ', 'error'); return; }
 
   const item = {
     name,
     category,
     color: document.getElementById('fColor').value.trim(),
-    price: Number(document.getElementById('fPrice').value)||0,
+    price: Number(document.getElementById('fPrice').value) || 0,
     type,
-    qty: Number(document.getElementById('fQty').value)||0,
+    qty: Number(document.getElementById('fQty').value) || 0,
     image: document.getElementById('fImage').value.trim(),
     notes: document.getElementById('fNotes').value.trim()
   };
 
   const editId = document.getElementById('editId').value;
-  if(editId){
-    const idx = inventory.findIndex(i=>i.id===Number(editId));
-    if(idx>-1){ inventory[idx] = {...inventory[idx],...item}; }
-    toast('ပြင်ဆင်ပြီးပါပြီ ✅','success');
+  if (editId) {
+    const idx = inventory.findIndex(i => i.id === Number(editId));
+    if (idx > -1) {
+      inventory[idx] = { ...inventory[idx], ...item };
+      saveLocal(inventory);
+      updateOnSheet(inventory[idx]);
+    }
+    toast('ပြင်ဆင်ပြီးပါပြီ ✅', 'success');
   } else {
     item.id = getNextId(inventory);
     inventory.push(item);
-    toast('ထည့်သွင်းပြီးပါပြီ ✅','success');
+    saveLocal(inventory);
+    addToSheet(item);
+    toast('ထည့်သွင်းပြီးပါပြီ ✅', 'success');
   }
 
-  saveData(inventory);
   closeModal('productModal');
   refresh();
 }
 
-function confirmDelete(id){
-  const item = inventory.find(i=>i.id===id);
-  if(!item) return;
+function confirmDelete(id) {
+  const item = inventory.find(i => i.id === id);
+  if (!item) return;
   document.getElementById('deleteName').textContent = item.name;
-  document.getElementById('confirmDeleteBtn').onclick = ()=>{
-    inventory = inventory.filter(i=>i.id!==id);
-    saveData(inventory);
+  document.getElementById('confirmDeleteBtn').onclick = () => {
+    inventory = inventory.filter(i => i.id !== id);
+    saveLocal(inventory);
+    deleteFromSheet(id);
     closeModal('deleteModal');
     refresh();
-    toast('ဖျက်ပြီးပါပြီ 🗑️','info');
+    toast('ဖျက်ပြီးပါပြီ 🗑️', 'info');
   };
   openModal('deleteModal');
 }
 
-function openModal(id){ document.getElementById(id).classList.add('active'); }
-function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 // Close modal on overlay click
-document.querySelectorAll('.modal-overlay').forEach(el=>{
-  el.addEventListener('click',e=>{if(e.target===el)closeModal(el.id);});
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
 });
 
 // ─── Export / Import ───
-function exportData(){
-  const blob = new Blob([JSON.stringify(inventory,null,2)],{type:'application/json'});
+function exportData() {
+  const blob = new Blob([JSON.stringify(inventory, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const d = new Date();
   a.href = url;
-  a.download = `myshop-backup-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.json`;
+  a.download = `myshop-backup-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  toast('Export ပြီးပါပြီ 📁','success');
+  toast('Export ပြီးပါပြီ 📁', 'success');
 }
 
-function openImportModal(){
+function openImportModal() {
   document.getElementById('importFile').value = '';
   openModal('importModal');
 }
 
-function handleImport(e){
+function handleImport(e) {
   const file = e.target.files[0];
-  if(!file) return;
+  if (!file) return;
   const reader = new FileReader();
-  reader.onload = function(ev){
-    try{
+  reader.onload = function(ev) {
+    try {
       const data = JSON.parse(ev.target.result);
-      if(!Array.isArray(data)) throw new Error('Invalid format');
+      if (!Array.isArray(data)) throw new Error('Invalid format');
       // Validate structure
-      data.forEach((item,i)=>{
-        if(!item.name) throw new Error(`Item ${i+1} missing name`);
-        item.id = item.id || i+1;
+      data.forEach((item, i) => {
+        if (!item.name) throw new Error(`Item ${i + 1} missing name`);
+        item.id = item.id || i + 1;
         item.category = item.category || '';
         item.color = item.color || '';
         item.price = Number(item.price) || 0;
@@ -625,47 +1005,53 @@ function handleImport(e){
         item.notes = item.notes || '';
       });
       inventory = data;
-      saveData(inventory);
+      saveLocal(inventory);
+      
+      // Full sync to sheet
+      if (isSheetsConfigured && isOnline) {
+        fullSyncToSheet();
+      }
+      
       closeModal('importModal');
       refresh();
-      toast(`Import ပြီးပါပြီ — ${data.length} items ✅`,'success');
-    }catch(err){
-      toast('Import မအောင်မြင်ပါ: '+err.message,'error');
+      toast(`Import ပြီးပါပြီ — ${data.length} items ✅`, 'success');
+    } catch(err) {
+      toast('Import မအောင်မြင်ပါ: ' + err.message, 'error');
     }
   };
   reader.readAsText(file);
 }
 
 // ─── Toast ───
-function toast(msg,type='info'){
+function toast(msg, type = 'info') {
   const container = document.getElementById('toastContainer');
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
   el.innerHTML = msg;
   container.appendChild(el);
-  setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(40px)';el.style.transition='all .3s';setTimeout(()=>el.remove(),300);},3000);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(40px)'; el.style.transition = 'all .3s'; setTimeout(() => el.remove(), 300); }, 3000);
 }
 
 // ─── Refresh All ───
-function refresh(){
+function refresh() {
   renderDashboard();
   updateCategoryFilter();
   renderTable();
 }
 
 // ─── Keyboard shortcut ───
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){
-    document.querySelectorAll('.modal-overlay.active').forEach(m=>closeModal(m.id));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.active').forEach(m => closeModal(m.id));
   }
-  if(e.key==='/' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){
+  if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
     e.preventDefault();
     document.getElementById('searchInput').focus();
   }
 });
 
-// ─── Init ───
-refresh();
+// ─── Start ───
+init();
 </script>
 </body>
 </html>
