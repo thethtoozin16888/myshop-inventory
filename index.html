@@ -187,21 +187,26 @@ tr:hover td{background:var(--accent-glow)}
   </div>
   <div class="header-actions">
     <!-- Sync Status -->
-    <div class="sync-indicator local" id="syncIndicator" onclick="manualSync()" title="Click to sync / နှိပ်ပြီး Sync လုပ်ရန်">
+    <div class="sync-indicator local admin-only" id="syncIndicator" onclick="manualSync()" title="Click to sync / နှိပ်ပြီး Sync လုပ်ရန်">
       <div class="sync-dot"></div>
       <span class="sync-text" id="syncText">Local Only</span>
     </div>
-    <button class="btn btn-primary" onclick="openAddModal()">
+    <button class="btn btn-primary admin-only" onclick="openAddModal()">
       <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
       <span class="btn-text">ပစ္စည်းထည့်ရန်</span>
     </button>
-    <button class="btn btn-secondary" onclick="exportData()">
+    <button class="btn btn-secondary admin-only" onclick="exportData()">
       <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
       <span class="btn-text">Export</span>
     </button>
-    <button class="btn btn-secondary" onclick="openImportModal()">
+    <button class="btn btn-secondary admin-only" onclick="openImportModal()">
       <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
       <span class="btn-text">Import</span>
+    </button>
+    <!-- Customer Action -->
+    <button class="btn btn-primary customer-only" onclick="window.location.href='https://m.me/yourpage'" style="background:var(--blue)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+      <span class="btn-text">Messenger မှာ ဝယ်မယ်</span>
     </button>
   </div>
 </div>
@@ -210,7 +215,7 @@ tr:hover td{background:var(--accent-glow)}
 <div class="main">
 
 <!-- Dashboard -->
-<div class="dashboard" id="dashboard"></div>
+<div class="dashboard admin-only" id="dashboard"></div>
 
 <!-- Toolbar -->
 <div class="toolbar">
@@ -245,7 +250,7 @@ tr:hover td{background:var(--accent-glow)}
           <th>အခြေအနေ</th>
           <th>အရေအတွက်</th>
           <th>မှတ်ချက်</th>
-          <th>Actions</th>
+          <th class="admin-only">Actions</th>
         </tr>
       </thead>
       <tbody id="tableBody"></tbody>
@@ -253,7 +258,7 @@ tr:hover td{background:var(--accent-glow)}
   </div>
   <div class="table-footer">
     <span id="tableCount"></span>
-    <span id="tableValue"></span>
+    <span id="tableValue" class="admin-only"></span>
   </div>
 </div>
 
@@ -400,12 +405,20 @@ let offlineQueue = [];
 let syncStatus = 'local'; // synced | syncing | offline | local | error
 let isOnline = navigator.onLine;
 let isSheetsConfigured = false;
+let isAdmin = false; // Customer mode by default
 
 // ─── Initialize ───
 function init() {
   isSheetsConfigured = SHEET_URL && SHEET_URL.length > 10;
   inventory = loadLocal();
   offlineQueue = loadQueue();
+  
+  // Check for admin mode via URL parameter (?admin=true)
+  const urlParams = new URLSearchParams(window.location.search);
+  isAdmin = urlParams.get('admin') === 'true';
+  
+  // Update UI for admin/customer
+  updateRoleUI();
   
   if (isSheetsConfigured) {
     updateSyncUI('syncing');
@@ -446,6 +459,23 @@ function init() {
         fetchFromSheet(true); // silent refresh
       }
     }, 120000);
+  }
+}
+
+// ─── Role UI Update ───
+function updateRoleUI() {
+  const adminElements = document.querySelectorAll('.admin-only');
+  adminElements.forEach(el => el.style.display = isAdmin ? '' : 'none');
+  
+  const customerElements = document.querySelectorAll('.customer-only');
+  customerElements.forEach(el => el.style.display = isAdmin ? 'none' : '');
+
+  // Add a small indicator
+  const logoSub = document.querySelector('.logo small');
+  if (isAdmin) {
+    logoSub.innerHTML = 'Admin Mode — <a href="?" style="color:var(--accent2)">Switch to Customer View</a>';
+  } else {
+    logoSub.textContent = 'Customer View (Read-Only)';
   }
 }
 
@@ -843,7 +873,7 @@ function renderTable() {
 
   const tbody = document.getElementById('tableBody');
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="9" class="no-data">
+    tbody.innerHTML = `<tr><td colspan="${isAdmin ? 9 : 8}" class="no-data">
       <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
       <p>ပစ္စည်းမတွေ့ပါ / No items found</p>
     </td></tr>`;
@@ -854,6 +884,17 @@ function renderTable() {
       const img = imgSrc
         ? `<img src="${imgSrc}" class="img-preview" alt="" onerror="this.style.display='none'">`
         : `<div class="img-placeholder">📦</div>`;
+      
+      let actions = '';
+      if (isAdmin) {
+        actions = `<td>
+          <div class="actions-cell">
+            <button class="btn btn-sm btn-secondary" onclick="openEditModal(${item.id})" title="Edit">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="confirmDelete(${item.id})" title="Delete">🗑️</button>
+          </div>
+        </td>`;
+      }
+
       return `<tr>
         <td>${img}</td>
         <td class="item-name">${esc(item.name)}</td>
@@ -863,19 +904,20 @@ function renderTable() {
         <td><span class="badge ${badgeClass}">${item.type}</span></td>
         <td>${fmtQty(item.qty)}</td>
         <td style="color:var(--text3);font-size:.85rem;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(item.notes || '')}">${esc(item.notes || '—')}</td>
-        <td>
-          <div class="actions-cell">
-            <button class="btn btn-sm btn-secondary" onclick="openEditModal(${item.id})" title="Edit">✏️</button>
-            <button class="btn btn-sm btn-danger" onclick="confirmDelete(${item.id})" title="Delete">🗑️</button>
-          </div>
-        </td>
+        ${actions}
       </tr>`;
     }).join('');
   }
 
   const filteredVal = filtered.reduce((s, i) => s + (i.price || 0) * (i.qty || 0), 0);
   document.getElementById('tableCount').textContent = `ပြသနေသည် ${filtered.length} / ${inventory.length} items`;
-  document.getElementById('tableValue').textContent = `တန်ဖိုး: ${filteredVal.toLocaleString()} MMK`;
+  
+  if (isAdmin) {
+    document.getElementById('tableValue').style.display = '';
+    document.getElementById('tableValue').textContent = `တန်ဖိုး: ${filteredVal.toLocaleString()} MMK`;
+  } else {
+    document.getElementById('tableValue').style.display = 'none';
+  }
 }
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
