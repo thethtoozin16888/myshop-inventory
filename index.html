@@ -431,16 +431,16 @@ function init() {
   
   if (isSheetsConfigured) {
     updateSyncUI('syncing');
-    fetchFromSheet().then(() => {
-      // Process any queued operations
-      if (offlineQueue.length > 0) {
-        processQueue();
-      }
-      // Check for items discussed with Nyx and add them if missing
+    // First, process any pending offline changes to ensure they reach the sheet
+    processQueue().then(() => {
+      // Then fetch the latest data from the sheet
+      return fetchFromSheet();
+    }).then(() => {
+      // Check for items discussed with Nyx
       checkAndAddDiscussedItems();
     }).catch(() => {
       updateSyncUI('offline');
-      checkAndAddDiscussedItems(); // Still try locally
+      checkAndAddDiscussedItems();
     });
   } else {
     updateSyncUI('local');
@@ -592,7 +592,25 @@ async function fetchFromSheet(silent = false) {
     const result = await sheetRequest('GET', { action: 'list' });
     
     if (result.success) {
-      inventory = restoreLocalImages(result.items || []);
+      const remoteItems = restoreLocalImages(result.items || []);
+      
+      // Merge logic: only update local inventory if there's no pending offline change for that item
+      const pendingIds = new Set(offlineQueue.map(op => op.id || (op.item && op.item.id)));
+      
+      inventory = remoteItems.map(remoteItem => {
+        if (pendingIds.has(remoteItem.id)) {
+          // Keep local version if there's a pending change for it
+          return inventory.find(i => i.id === remoteItem.id) || remoteItem;
+        }
+        return remoteItem;
+      });
+
+      // Add local-only items that aren't on the sheet yet
+      inventory.push(...inventory.filter(i => !remoteItems.some(ri => ri.id === i.id)));
+      
+      // Remove duplicates
+      inventory = Array.from(new Map(inventory.map(i => [i.id, i])).values());
+
       saveLocal(inventory);
       updateSyncUI('synced');
       if (!silent) refresh();
