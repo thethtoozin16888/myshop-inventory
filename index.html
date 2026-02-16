@@ -182,7 +182,7 @@ tr:hover td{background:var(--accent-glow)}
     <div class="logo-icon">🛍️</div>
     <div>
       <h1>ငါ့ဆိုင်</h1>
-      <small>My Shop — Inventory Manager</small>
+      <small id="logoSubtitle">NgrSine</small>
     </div>
   </div>
   <div class="header-actions">
@@ -471,11 +471,11 @@ function updateRoleUI() {
   customerElements.forEach(el => el.style.display = isAdmin ? 'none' : '');
 
   // Add a small indicator
-  const logoSub = document.querySelector('.logo small');
+  const logoSub = document.getElementById('logoSubtitle');
   if (isAdmin) {
     logoSub.innerHTML = 'Admin Mode — <a href="?" style="color:var(--accent2)">Switch to Customer View</a>';
   } else {
-    logoSub.textContent = 'My Shop — Inventory Manager';
+    logoSub.textContent = 'NgrSine';
   }
 }
 
