@@ -436,11 +436,15 @@ function init() {
       if (offlineQueue.length > 0) {
         processQueue();
       }
+      // Check for items discussed with Nyx and add them if missing
+      checkAndAddDiscussedItems();
     }).catch(() => {
       updateSyncUI('offline');
+      checkAndAddDiscussedItems(); // Still try locally
     });
   } else {
     updateSyncUI('local');
+    checkAndAddDiscussedItems();
   }
   
   refresh();
@@ -1084,6 +1088,34 @@ function toast(msg, type = 'info') {
   el.innerHTML = msg;
   container.appendChild(el);
   setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(40px)'; el.style.transition = 'all .3s'; setTimeout(() => el.remove(), 300); }, 3000);
+}
+
+function checkAndAddDiscussedItems() {
+  const itemsToAdd = [
+    { name: "Asakusa Crystal Sunscreen Spray (Yellow)", category: "Sun Spray", price: 0, type: "Instock", qty: 5, color: "180ml", notes: "High Margin Product" },
+    { name: "MizuMi UV Cooling Body Serum", category: "Sun Spray", price: 0, type: "Instock", qty: 5, color: "Serum", notes: "Premium Brand" },
+    { name: "Asakusa Ice Penetrating Spray (Orange)", category: "Sun Spray", price: 0, type: "Instock", qty: 5, color: "88ml", notes: "Portable Size" },
+    { name: "Ajuste UV Spray - Non-Fragrance (White)", category: "Sun Spray", price: 0, type: "Preorder", qty: 0, color: "350ml / White", notes: "Japan Brand - Large Size" },
+    { name: "Jeep Spirit Sun-Protection Hoodie", category: "Summer 🌤️", price: 33000, type: "Preorder", qty: 0, color: "Sky Blue, Pink, Light Purple, White, Grey", notes: "UPF 50+, Ice Silk Material" }
+  ];
+
+  let added = false;
+  itemsToAdd.forEach(newItem => {
+    if (!inventory.some(i => i.name === newItem.name)) {
+      newItem.id = getNextId(inventory);
+      inventory.push(newItem);
+      saveLocal(inventory);
+      if (isSheetsConfigured && isOnline) {
+        addToSheet(newItem);
+      }
+      added = true;
+    }
+  });
+
+  if (added) {
+    refresh();
+    toast('ပစ္စည်းအသစ်များကို Google Sheets ထဲသို့ ထည့်သွင်းပေးလိုက်ပါပြီ ✨', 'success');
+  }
 }
 
 // ─── Refresh All ───
