@@ -450,17 +450,16 @@ function init() {
   // Listen for online/offline
   window.addEventListener('online', () => {
     isOnline = true;
+    updateSyncUI(offlineQueue.length > 0 ? 'syncing' : 'synced');
     if (isSheetsConfigured) {
       toast('အင်တာနက် ပြန်ရပါပြီ 🌐', 'success');
-      processQueue().then(() => fetchFromSheet());
+      processQueue().then(() => fetchFromSheet(true));
     }
   });
   window.addEventListener('offline', () => {
     isOnline = false;
-    if (isSheetsConfigured) {
-      updateSyncUI('offline');
-      toast('အင်တာနက် ပြတ်နေပါသည် 📡', 'warning');
-    }
+    updateSyncUI('offline');
+    toast('အင်တာနက် ပြတ်နေပါသည် 📡 (Offline Mode)', 'warning');
   });
   
   // Auto-sync every 2 minutes if configured
@@ -561,24 +560,42 @@ function restoreLocalImages(items) {
 
 // ─── Google Sheets API ───
 
-async function sheetRequest(method, body) {
+async function sheetRequest(method, body, retries = 3) {
   if (!isSheetsConfigured) throw new Error('Sheet URL not configured');
-  if (!isOnline) throw new Error('Offline');
   
-  const opts = { redirect: 'follow' };
-  
-  if (method === 'GET') {
-    const params = new URLSearchParams(body || {});
-    const url = SHEET_URL + '?' + params.toString();
-    opts.method = 'GET';
-    const resp = await fetch(url, opts);
-    return await resp.json();
-  } else {
-    opts.method = 'POST';
-    opts.headers = { 'Content-Type': 'text/plain' }; // text/plain avoids CORS preflight
-    opts.body = JSON.stringify(body);
-    const resp = await fetch(SHEET_URL, opts);
-    return await resp.json();
+  for (let i = 0; i < retries; i++) {
+    if (!isOnline) {
+      if (i < retries - 1) {
+        console.log(`Offline, waiting to retry... (${i + 1}/${retries})`);
+        await new Promise(r => setTimeout(r, 5000)); // Wait 5s
+        continue;
+      }
+      throw new Error('Offline');
+    }
+    
+    try {
+      const opts = { redirect: 'follow' };
+      if (method === 'GET') {
+        const params = new URLSearchParams(body || {});
+        const url = SHEET_URL + '?' + params.toString();
+        opts.method = 'GET';
+        const resp = await fetch(url, opts);
+        return await resp.json();
+      } else {
+        opts.method = 'POST';
+        opts.headers = { 'Content-Type': 'text/plain' };
+        opts.body = JSON.stringify(body);
+        const resp = await fetch(SHEET_URL, opts);
+        return await resp.json();
+      }
+    } catch (err) {
+      if (i < retries - 1) {
+        console.warn(`Request failed, retrying... (${i + 1}/${retries})`, err);
+        await new Promise(r => setTimeout(r, 3000));
+        continue;
+      }
+      throw err;
+    }
   }
 }
 
