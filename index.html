@@ -408,7 +408,8 @@ const DEFAULT_DATA = [
   {id:26,name:"Aula L99 Mechanical Keyboard",category:"Keyboard",color:"White Purple",price:575000,type:"Instock",qty:1,image:"",notes:"IPS Touchscreen, Gasket Structure, 8000mAh"},
   {id:27,name:"Gateron Oil King Switch (Preorder)",category:"key switch",color:"All Black (Opaque)",price:130000,type:"Preorder",qty:0,image:"https://raw.githubusercontent.com/thethtoozin16888/myshop-inventory/main/images/oil-king.jpg",notes:"1 bottle - 30pcs"},
   {id:28,name:"Leobog Graywood V4 switch (Preorder)",category:"key switch",color:"Grey/White",price:70000,type:"Preorder",qty:0,image:"https://raw.githubusercontent.com/thethtoozin16888/myshop-inventory/main/images/graywood-v4-new.jpg",notes:"1 bottle - 110pcs"},
-  {id:29,name:"WS Morandi Switch (Preorder)",category:"key switch",color:"White / Light Guide",price:202500,type:"Preorder",qty:0,image:"https://raw.githubusercontent.com/thethtoozin16888/myshop-inventory/main/images/ws-morandi.jpg",notes:"1 bottle - 100pcs"}
+  {id:29,name:"WS Morandi Switch (Preorder)",category:"key switch",color:"White / Light Guide",price:202500,type:"Preorder",qty:0,image:"https://raw.githubusercontent.com/thethtoozin16888/myshop-inventory/main/images/ws-morandi.jpg",notes:"1 bottle - 100pcs"},
+  {id:30,name:"Vertex V1.2 Switch (Preorder)",category:"key switch",color:"Purple stem / Black housing",price:203000,type:"Preorder",qty:0,image:"https://raw.githubusercontent.com/thethtoozin16888/myshop-inventory/main/images/vertex-v1-2.jpg",notes:"1 bottle - 100pcs"}
 ];
 
 // ─── State ───
@@ -1143,12 +1144,21 @@ function checkAndAddDiscussedItems() {
 
   let added = false;
   itemsToAdd.forEach(newItem => {
-    if (!inventory.some(i => i.name === newItem.name)) {
+    const existingIndex = inventory.findIndex(i => i.name === newItem.name);
+    if (existingIndex === -1) {
       newItem.id = getNextId(inventory);
       inventory.push(newItem);
       saveLocal(inventory);
       if (isSheetsConfigured && isOnline) {
         addToSheet(newItem);
+      }
+      added = true;
+    } else if (inventory[existingIndex].image !== newItem.image) {
+      // Update image if it changed in the code
+      inventory[existingIndex].image = newItem.image;
+      saveLocal(inventory);
+      if (isSheetsConfigured && isOnline) {
+        updateOnSheet(inventory[existingIndex]);
       }
       added = true;
     }
